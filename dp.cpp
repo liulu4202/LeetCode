@@ -328,3 +328,656 @@ int main(){
     cout << stacked_wood(n, woods);
 };
 
+/*674. 最长连续递增序列
+用滑动窗口记录递增子序列
+*/
+class Solution {
+public:
+    int findLengthOfLCIS(vector<int>& nums) {
+        int n = nums.size();
+        if(n <= 1) return n;
+        int start = 0, ans = 1;
+        for(int i = 1;i < n;i++){
+            if(nums[i] > nums[i-1]){
+                ans = max(ans, i - start + 1);
+            }else{
+                start = i;
+            }
+        }
+        return ans;
+    }
+};
+
+/*673. 最长递增子序列的个数
+找到满足nums[j]<nums[i]的最大的j，这样的j有多个，根据dp[j]+1与dp[i]的大小关系判断是遇到的几个j
+*/
+class Solution {
+public:
+    int findNumberOfLIS(vector<int>& nums) {
+        int n = nums.size();
+        if(n <= 1) return n;
+        vector<int> cnt(n, 1), dp(n, 1);
+        
+        for(int i = 1;i < n;i++){
+            for(int j = 0;j < i;j++){
+                if(nums[i] > nums[j]){
+                    if(dp[j] + 1 > dp[i]){
+                        dp[i] = dp[j] + 1;
+                        cnt[i] = cnt[j]; 
+                    }else if(dp[j] + 1 == dp[i]){
+                        cnt[i] += cnt[j];
+                    }
+                }
+            }
+        }
+        int maxLen = *max_element(dp.begin(), dp.end());
+        int res = 0;
+        for(int i = 0;i < n;i++){
+            if(dp[i] == maxLen) res += cnt[i];
+        }
+        
+        return res;
+    }
+};
+
+/*128. 最长连续序列 给定一个未排序的整数数组 nums ，找出数字连续的最长序列（不要求序列元素在原数组中连续）的长度。
+进阶：你可以设计并实现时间复杂度为 O(n) 的解决方案吗？
+用set保存数组内元素，以O(1)复杂度进行查找
+*/
+class Solution {
+public:
+    int longestConsecutive(vector<int>& nums) {
+        unordered_set<int> s;
+        for(auto n: nums){
+            s.insert(n);
+        }
+        int ans = 0;
+        for(auto n: nums){
+	    if(s.count(n - 1)!=0) continue;
+            int cur = 1, curNum = n;
+            while(s.count(curNum+1)!=0){
+                curNum++;
+                cur++;
+            }
+            ans = (ans>cur?ans:cur);
+        }
+        return ans;
+    }
+};
+
+/*10. 正则表达式匹配 给你一个字符串 s 和一个字符规律 p，请你来实现一个支持 '.' 和 '*' 的正则表达式匹配。'.' 匹配任意单个字符
+'*' 匹配零个或多个前面的那一个元素 所谓匹配，是要涵盖 整个 字符串 s的，而不是部分字符串。
+*/
+class Solution {
+public:
+    bool isMatch(string s, string p) {
+        int m = s.size(), n = p.size();
+        if(m != 0 & n == 0) return false;
+        vector<vector<int>> dp(m+1, vector<int>(n+1));
+        dp[0][0] = 1;
+        auto match = [&s, &p](int i, int j) {
+            if(i == 0)
+                return false;
+            if(p[j - 1] == '.')
+                return true;
+            return s[i - 1] == p[j - 1];
+        };
+
+        for(int i = 0;i <= m;i++){
+            for(int j = 1;j <= n;j++){
+                if(p[j - 1] == '*'){
+                    if(match(i, j - 1)){
+                        dp[i][j] |= dp[i-1][j];
+                    }
+                    if(j >= 2){
+                        dp[i][j] |= dp[i][j-2];
+                    }
+                }else{
+                    if(match(i, j)) 
+                        dp[i][j] |= dp[i - 1][j - 1];
+                }
+            } 
+        }
+        return dp[m][n];
+    }
+};
+
+/*44. 通配符匹配
+*/
+class Solution {
+public:
+    bool isMatch(string s, string p) {
+        int m = s.size(), n = p.size();
+        if(p == "*") return true;
+        vector<vector<int>> dp(m+1, vector<int>(n+1));
+        dp[0][0] = 1;
+        for(int j = 1;j <= n;j++){
+            if(p[j-1] == '*'){
+                dp[0][j] = 1;
+            }else{
+                break;
+            }
+        }
+        
+        for(int i = 1;i <= m;i++){
+            for(int j = 1;j <= n;j++){
+                if(p[j-1] == s[i-1] || p[j-1] == '?'){
+                    dp[i][j] = dp[i-1][j-1];
+                }else if(p[j-1] == '*'){
+                    dp[i][j] = dp[i][j-1]||dp[i-1][j];
+                }else{
+                    dp[i][j] = 0;
+                }
+            }
+        }
+        return dp[m][n];
+    }
+};
+
+/*53. 最大子序和 给定一个整数数组 nums ，找到一个具有最大和的连续子数组（子数组最少包含一个元素），返回其最大和。
+dp[i]=max(dp[i-1]+nums[i], nums[i])
+*/
+class Solution {
+public:
+    int maxSubArray(vector<int>& nums) {
+        int n = nums.size();
+        int ans = nums[0], sum = nums[0];
+        for(int i = 1;i < n;i++){
+            sum = max(nums[i], sum + nums[i]);
+            ans = max(ans, sum);
+        }
+        
+        return ans;
+    }
+};
+
+/*152. 乘积最大子数组
+dp 数组中存在负值，所以需要记录最大和最小值，以便负负得正
+由于当前状态只和前一个状态有关，所以根据「滚动数组」思想，我们可以只用两个变量来维护i−1时刻的状态
+*/
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        vector<int> maxF(nums), minF(nums);
+        for(int i = 1;i < nums.size();i++){
+            maxF[i] = max(maxF[i - 1] * nums[i], max(minF[i - 1] * nums[i], nums[i]));
+            minF[i] = min(maxF[i - 1] * nums[i], min(minF[i - 1] * nums[i], nums[i]));
+        }
+        return *max_element(maxF.begin(), maxF.end());
+    }
+};
+
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        int maxF = nums[0], minF = nums[0], ans = nums[0];
+        for(int i = 1;i < nums.size();i++){
+            int mx = maxF, mn = minF;
+            maxF = max(mx*nums[i], max(mn*nums[i], nums[i]));
+            minF = min(mx*nums[i], min(mn*nums[i], nums[i]));
+            ans = max(ans, maxF);
+        }
+        return ans;
+    }
+};
+
+/*120. 三角形最小路径和
+方法一：dp f[i][j]=min(f[i-1][j-1], f[i-1][j])+c[i][j]
+方法二：由于f[i][j]只与前两个状态有关，因此我们不必存储这些无关的状态。具体地，我们使用两个长度为n的一维数组进行转移，
+将i根据奇偶性映射到其中一个一维数组，那么i−1就映射到了另一个一维数组。这样我们使用这两个一维数组，交替地进行状态转移
+f[j]=min(f[j-1],f[j])+c[i][j]
+*/
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        int n = triangle.size();
+        if(n == 0) return 0;
+        vector<vector<int>> dp(n, vector<int>(n, 0));
+        dp[0][0] = triangle[0][0];
+        for(int i = 1;i < n;i++){
+            dp[i][0] = dp[i - 1][0] + triangle[i][0];
+            for(int j = 1;j < i;j++){
+                dp[i][j] = triangle[i][j] + min(dp[i - 1][j], dp[i - 1][j - 1]);
+            }
+            dp[i][i] = dp[i - 1][i - 1] + triangle[i][i];
+        }
+        
+        return *min_element(dp[n - 1].begin(), dp[n - 1].end());
+    }
+};
+
+class Solution {
+public:
+    int minimumTotal(vector<vector<int>>& triangle) {
+        int n = triangle.size();
+        if(n == 0) return 0;
+        vector<int> f(n);
+        f[0] = triangle[0][0];
+        for(int i = 1;i < n;i++){
+            f[i] = f[i - 1] + triangle[i][i];
+            for(int j = i - 1;j > 0;j--){
+                f[j] = triangle[i][j] + min(f[j], f[j - 1]);
+            }
+            f[0] += triangle[i][0];
+        }
+        
+        return *min_element(f.begin(), f.end());
+    }
+};
+
+
+/*85. 最大矩形
+*/
+class Solution {
+public:
+    int maximalRectangle(vector<vector<char>>& matrix) {
+        int m = matrix.size();
+        if(m == 0) return 0;
+        int n = matrix[0].size();
+        if(n == 0) return 0;
+        int ans = 0;
+        vector<vector<int>> dp(m, vector<int>(n, 0));
+        
+        for(int i = 0;i < m;i++){
+            for(int j = 0;j < n;j++){
+                if(matrix[i][j] == '1')
+                    dp[i][j] = (j == 0) ? 1 : dp[i][j - 1] + 1;
+                int width = dp[i][j];
+                for(int k = i;k >= 0;k--){
+                    width = min(width, dp[k][j]);
+                    ans = max(ans, width*(i - k + 1));
+                }
+            }
+        }
+        return ans;
+    }
+};
+
+/*221. 最大正方形
+dp(i,j)=min(dp(i−1,j),dp(i−1,j−1),dp(i,j−1))+1
+*/
+class Solution {
+public:
+    int maximalSquare(vector<vector<char>>& matrix) {
+        int m = matrix.size();
+        if(m == 0) return 0;
+        int n = matrix[0].size();
+        if(n == 0) return 0;
+        int maxSide = 0;
+        vector<vector<int>> dp(m, vector<int>(n, 0));
+        
+        for(int i = 0;i < m;i++){
+            for(int j = 0;j < n;j++){
+                if(matrix[i][j] == '1'){
+                    if(i == 0||j == 0)
+                        dp[i][j] = 1;
+                    else
+                        dp[i][j] = min(dp[i-1][j-1], min(dp[i][j-1], dp[i-1][j])) + 1;
+                }
+                maxSide = max(dp[i][j], maxSide);
+            }
+        }
+        return maxSide * maxSide;
+    }
+};
+
+/*32. 最长有效括号
+方法一：dp，s[i]=‘)’且s[i−1]=‘(’，也就是字符串形如“……()”，可以推出dp[i]=dp[i−2]+2;s[i]=‘)’且s[i−1]=‘)’，也就是字符串形如“……))”，
+可以推出:如果s[i−dp[i−1]−1]=‘(’，dp[i]=dp[i−1]+dp[i−dp[i−1]−2]+2
+方法二：栈
+对于遇到的每个‘(’ ，我们将它的下标放入栈中；
+对于遇到的每个‘)’，我们先弹出栈顶元素表示匹配了当前右括号：
+如果栈为空，说明当前的右括号为没有被匹配的右括号，我们将其下标放入栈中来更新我们之前提到的「最后一个没有被匹配的右括号的下标」
+如果栈不为空，当前右括号的下标减去栈顶元素即为「以该右括号为结尾的最长有效括号的长度」
+*/
+class Solution {
+public:
+    int longestValidParentheses(string s) {
+        int n = s.size(), ans = 0;
+        if(n == 0) return 0;
+        vector<int> dp(n, 0);
+        for(int i = 1;i < n;i++){
+            if(s[i] == ')'){
+                if(s[i - 1] == '('){
+                    dp[i] = (i >= 2) ? dp[i - 2] + 2 : 2;
+                }else if(i - dp[i - 1] > 0 && s[i - dp[i - 1] - 1] == '('){
+                    dp[i] = dp[i-1] + (i - dp[i - 1] >= 2) ? dp[i-dp[i-1]-2]:0 + 2;
+                }
+                ans = max(ans, dp[i]);
+            }
+        }
+        return ans;
+    }
+};
+
+class Solution {
+public:
+    int longestValidParentheses(string s) {
+        int maxans = 0;
+        stack<int> stk;
+        stk.push(-1);
+        for (int i = 0; i < s.length(); i++) {
+            if (s[i] == '(') {
+                stk.push(i);
+            } else {
+                stk.pop();
+                if (stk.empty()) {
+                    stk.push(i);
+                } else {
+                    maxans = max(maxans, i - stk.top());
+                }
+            }
+        }
+        return maxans;
+    }
+};
+
+class Solution {
+public:
+    int longestValidParentheses(string s) {
+        int left = 0, right = 0, maxlength = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s[i] == '(') {
+                left++;
+            } else {
+                right++;
+            }
+            if (left == right) {
+                maxlength = max(maxlength, 2 * right);
+            } else if (right > left) {
+                left = right = 0;
+            }
+        }
+        left = right = 0;
+        for (int i = (int)s.length() - 1; i >= 0; i--) {
+            if (s[i] == '(') {
+                left++;
+            } else {
+                right++;
+            }
+            if (left == right) {
+                maxlength = max(maxlength, 2 * left);
+            } else if (left > right) {
+                left = right = 0;
+            }
+        }
+        return maxlength;
+    }
+};
+
+/*91. 解码方法
+*/
+class Solution {
+public:
+    int numDecodings(string s) {
+        int n = s.size();
+        if(n == 0 || s[0] == '0') return 0;
+        vector<int> dp(n, 0);
+        dp[0] = 1; 
+        for(int i = 1;i < n;i++){
+            if(s[i] == '0') {
+                if(s[i-1] == '1' || s[i-1] == '2')
+                    dp[i] = ((i >= 2) ? dp[i - 2]:1);
+                else return 0;
+            }else if(s[i-1] == '1' || (s[i-1] == '2' && s[i]>='1' && s[i]<='6')){
+                dp[i] = dp[i - 1] + ((i >= 2) ? dp[i - 2]:1);
+            }else{
+                dp[i] = dp[i - 1];
+            }
+        }
+        return dp[n - 1];
+    }
+};
+
+class Solution {
+public:
+    int numDecodings(string s) {
+        int n = s.size();
+        if(n == 0 || s[0] == '0') return 0;
+        int pre = 1, curr = 1;
+        for (int i = 1; i < s.size(); i++) {
+            int tmp = curr;
+            if (s[i] == '0')
+                if (s[i - 1] == '1' || s[i - 1] == '2') curr = pre;
+                else return 0;
+            else if (s[i - 1] == '1' || (s[i - 1] == '2' && s[i] <= '6'))
+                curr += pre;
+            pre = tmp;
+        }
+        return curr;
+    }
+};
+
+/*剑指 Offer 46. 把数字翻译成字符串
+*/
+class Solution {
+public:
+    int translateNum(int num) {
+        if(num == 0) return 1;
+        int pre = 1, cur = 1;
+        int lastNum = num % 10, curNum;
+        num /= 10;
+        while(num > 0){
+            curNum = num % 10;
+            int tmp = cur;
+            if(curNum == 1 || (curNum == 2 && lastNum <= 5))
+                cur += pre;
+            pre = tmp;
+            lastNum = curNum;
+            num /= 10;
+        }
+        return cur;
+    }
+};
+
+/*121. 买卖股票的最佳时机
+*/
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int buy = -prices[0], sell = 0;
+        for(int i = 0;i < prices.size();i++){
+            buy = max(buy, -prices[i]);
+            sell = max(sell, buy + prices[i]);
+        }
+        return sell;
+    }
+};
+
+/*122. 买卖股票的最佳时机 II
+方法一：动态规划：当前有两种状态，持有股票和未持有股票，分别用两个变量记录
+方法二：贪心：ans=∑max{0,a[i]−a[i−1]}
+*/
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int n = prices.size();
+        int dp[n][2];
+        dp[0][0] = 0, dp[0][1] = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            dp[i][0] = max(dp[i - 1][0], dp[i - 1][1] + prices[i]);
+            dp[i][1] = max(dp[i - 1][1], dp[i - 1][0] - prices[i]);
+        }
+        return dp[n - 1][0];
+    }
+};
+
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int n = prices.size();
+        int dp0 = 0, dp1 = -prices[0];
+        for(int i = 1;i < n;i++){
+            int newdp0 = max(dp0, dp1 + prices[i]);
+            int newdp1 = max(dp1, dp0 - prices[i]);
+            dp0 = newdp0;
+            dp1 = newdp1;
+        }
+        return dp0;
+    }
+};
+
+/*123. 买卖股票的最佳时机 III
+*/
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        int buy1 = -prices[0], sell1 = 0, buy2 = -prices[0], sell2 = 0;
+        for(int i=1;i<prices.size();i++){
+            buy1 = max(buy1, -prices[i]);
+            sell1 = max(sell1, buy1+prices[i]);
+            buy2 = max(buy2, sell1-prices[i]);
+            sell2 = max(sell2, buy2+prices[i]);
+        }
+        return sell2;
+    }
+};
+
+/*198. 打家劫舍
+*/
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if(n == 0) return 0;
+        if(n == 1) return nums[0]; 
+        vector<int> dp(n, 0);
+        dp[0] = nums[0]; dp[1] = max(nums[0], nums[1]);
+        for(int i = 2;i < n;i++){
+            dp[i] = max(dp[i - 1], dp[i - 2]+nums[i]);
+        }
+        return dp[n - 1];
+    }
+};
+
+/*213. 打家劫舍 II
+和198相比，增加了环状结构，可以截成两部分进行动态规划，取其中较大的作为结果*/
+class Solution {
+public:
+    int dp(vector<int> nums, int start, int end){
+        int first = nums[start], second = max(nums[start], nums[start + 1]), tmp;
+        for(int i = start + 2;i < end;i++){
+            tmp = second;
+            second = max(second, first + nums[i]);
+            first = tmp;
+
+        }
+        return second;
+    }
+
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if(n == 0) return 0;
+        if(n == 1) return nums[0]; 
+        if(n > 1 && n <= 3) return *max_element(nums.begin(), nums.end());
+        
+        return max(dp(nums, 0, n - 1), dp(nums, 1, n));
+    }
+
+};
+
+/*279. 完全平方数
+*/
+class Solution {
+public:
+    int numSquares(int n) {
+        vector<int> dp(n + 1, 0);
+        for(int i = 1;i <= n;i++){
+            dp[i] = i;
+            for(int j = 1;i - j * j >= 0;j++){
+                dp[i] = min(dp[i], dp[i - j * j] + 1);
+            }
+        }
+        return dp[n];
+    }
+};
+
+/*746. 使用最小花费爬楼梯
+*/
+class Solution {
+public:
+    int minCostClimbingStairs(vector<int>& cost) {
+        int n = cost.size();
+        vector<int> dp(n, 0);
+        dp[0] = cost[0];
+        dp[1] = cost[1];
+        for(int i = 2;i < n;i++){
+            dp[i] = min(dp[i - 2], dp[i - 1]) + cost[i];
+        }
+        return min(dp[n - 1], dp[n - 2]);
+    }
+};
+
+/*63. 不同路径 II
+*/
+class Solution {
+public:
+    int uniquePathsWithObstacles(vector<vector<int>>& obstacleGrid) {
+        int m = obstacleGrid.size();
+        if(m < 1) return 0;
+        int n = obstacleGrid[0].size();
+        if(n < 1) return 0;
+        vector<vector<int>> dp(m, vector<int>(n, 0));
+        for(int i = 0;i < m;i++){
+            if(obstacleGrid[i][0] == 1) break;
+            dp[i][0] = 1;
+        }
+        for(int j = 0;j < n;j++){
+            if(obstacleGrid[0][j] == 1) break;
+            dp[0][j] = 1;
+        }
+            
+        for(int i = 1;i < m;i++){
+            for(int j = 1;j < n;j++){
+                if(obstacleGrid[i][j] == 0)
+                    dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+                else
+                    dp[i][j] = 0;
+            }
+        }
+        return dp[m - 1][n - 1];
+    }
+};
+
+/*322. 零钱兑换
+*/
+class Solution {
+public:
+    int coinChange(vector<int>& coins, int amount) {
+        int n = coins.size();
+        vector<int> dp(amount+1, amount+1);
+        dp[0] = 0;
+        for(int i = 0;i < n;i++){
+            for(int j = coins[i];j <= amount;j++){
+                dp[j] = min(dp[j], dp[j - coins[i]] + 1);
+            }
+        }
+        return (dp[amount] == amount + 1) ? -1 : dp[amount];
+    }
+};
+
+/*983. 最低票价
+*/
+class Solution {
+private:
+    unordered_set<int> dayset;
+    vector<int> memo;
+public:
+    int mincostTickets(vector<int>& days, vector<int>& costs) {
+        memo.resize(366, -1); memo[0] = 0;
+        for(auto x: days) dayset.insert(x);
+        return dp(1, costs);
+    }
+
+    int dp(int start, vector<int>& costs) {
+        if(start > 365) return 0;
+        if(memo[start] >= 0) return memo[start];
+        if(dayset.count(start)) 
+            memo[start] = min(dp(start + 1, costs) + costs[0], 
+                        min(dp(start + 7, costs) + costs[1],
+                        dp(start + 30, costs) + costs[2]));
+        else 
+            memo[start] = dp(start + 1, costs);
+        return memo[start];
+    }
+};
